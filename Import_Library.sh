@@ -2,39 +2,7 @@
 
 # ==============================================================================
 # Import_Library.sh
-#
-# Migration interactive d'une bibliothèque de films vers une nouvelle
-# bibliothèque organisée au format Emby/Jellyfin, avec :
-#   - analyse récursive des fichiers vidéo ;
-#   - si plusieurs vidéos sont présentes dans un dossier : sélection de la plus grosse ;
-#   - analyse du nom de release via scene-release-parser (https://github.com/pr0pz/scene-release-parser) ;
-#   - recherche TMDB ;
-#   - sélection interactive dans fzf ;
-#   - saisie manuelle possible d'un ID TMDB ;
-#   - possibilité d'ignorer un film ;
-#   - vérification du hardlink (ne pas en créer un nouveau si le fichier est déjà présent) ;
-#   - création d'un hardlink ;
-#
-# Dépendances :
-#   bash >= 4
-#   curl, jq, fzf
-#
-# Configuration :
-#   Import_Library.env
-#   ou
-#   --config /chemin/vers/config.env
-#
-# Les chemins source et destination sont TOUJOURS passés en arguments.
-#
-# Exemple :
-#   ./Import_Library.sh \
-#       --from /data/Emby/Film \
-#       --destination /data/medias/Film
-#
-# TODO:
-#   - création d'un vrai dépôt
-#   - prise en compte des séries
-#   - intégration de Release Parser Web dans le script avec option lancer ou non
+# Voir README pour explications
 # ==============================================================================
 set -Eeuo pipefail
 
