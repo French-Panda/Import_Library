@@ -1,6 +1,6 @@
 # Import_Library
 
-Script d'import en masse d'une bibliothèque de vidéos avec création de dossiers aux standards de Emby/Jellyfin#!/usr/bin/env bash
+Script d'import en masse d'une bibliothèque de vidéos avec création de dossiers aux standards de Emby/Jellyfin
 
 ## Principe et fonctionalités
 Migration interactive d'une bibliothèque de films vers une nouvelle
@@ -42,3 +42,15 @@ Naviguer dans l'interface du terminal pour valider les films détectés ou entre
 ## TODO
   - Prise en compte des séries
   - Intégration de Release Parser Web dans le script avec option lancer ou non
+  - Choix de langue pour le titre du film
+  - Choix du format de nom de dossier avec options simples:
+    - Langue du titre (FR, US, original)
+    - Année ou non
+    - ID TMDB, ID IMDB (TVDB pour les séries)
+  - Interface en Anglais en plus du Français
+
+## Informations
+Projet purement personnel, réalisé pour mon besoin propre. Partagé uniquement par amour du partage!
+Codé avec l'aide de LLM, surtout ChatGPT mais aussi Mistral et Qwen sur une instance locale d'Ollama.
+Cependant, RIEN n'est automatisé dans l'IDE, CHAQUE LIGNE est relue et CONTRÔLÉE avant d'être copiée.
+Ce code peut être librement repris, utilisé et modifié conformément aux termes de la licence GPL 3.0.

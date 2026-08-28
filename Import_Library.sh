@@ -364,16 +364,14 @@ get_source_release_name()
 # ==============================================================================
 parse_release()
 {
-    local release="$1"
-    curl --fail --silent --show-error --get --data-urlencode "Release=${release// /\\.}" "$RELEASE_PARSER_URL"
+    local release="${1// /.}"
+    curl --fail --silent --show-error --get --data-urlencode "Release=$release" "$RELEASE_PARSER_URL"
 }
 
 # ==============================================================================
-# Recherche TMDB
-# On recherche d'abord avec l'année lorsque celle-ci est connue.
+# Recherche TMDB, d'abord avec l'année lorsque celle-ci est connue.
 # L'API TMDB recherche les titres originaux, traduits et alternatifs.
 # ==============================================================================
-#        --header "Authorization: Bearer $TMDB_TOKEN"
 search_tmdb()
 {
     local title="$1"
@@ -399,6 +397,27 @@ search_tmdb()
         log_debug "TMDB: aucun résultat avec année $year, nouvelle recherche sans année"
         result="$(curl "${args[@]}")" || return 1
     fi
+    echo "$result"
+}
+
+# ==============================================================================
+# Fonction pour récupérer l'intégralité des infos d'un film
+# ==============================================================================
+get_info_tmdb()
+{
+    local movie_id="$1"
+    local args=(
+        --fail
+        --silent
+        --show-error
+        --get
+        --url "https://api.themoviedb.org/3/movie/${movie_id}"
+        --data-urlencode "api_key=${TMDB_TOKEN}"
+        --data-urlencode "language=fr-FR"
+        --data-urlencode "append_to_response=alternative_titles,external_ids"
+    ) # D'autres infos peuvent etre récupérées au besoin, voir https://developer.themoviedb.org/docs/append-to-response
+    local result
+    result="$(curl "${args[@]}")" || return 1
     echo "$result"
 }
 
@@ -468,7 +487,7 @@ select_tmdb()
             --border=rounded \
             --prompt='TMDB > ' \
             --header='ID TMDB | Original | Français' \
-            --header-lines=1 \
+            --header-lines=0 \
             --no-multi \
             --cycle \
             --info=inline
@@ -496,7 +515,7 @@ select_tmdb()
         done
     fi
 
-    # Le premier champ est l'ID.
+    # Le premier champ est l'ID pour une sélection dans le menu fzf.
     awk '{print $1}' <<< "$selection"
 }
 
@@ -511,29 +530,25 @@ get_final_title()
     local fallback_title="$3"
     local french
     local original
-
-    french="$(
-        echo "$search_json" |
-            jq -r --arg id "$tmdb_id" '.results[] | select((.id | tostring) == $id) | .title // "" ' |
+    french="$(echo "$search_json" |
+            jq -r --arg id "$tmdb_id" 'select((.id | tostring) == $id) | .title // "" ' |
             head -n 1)"
-
-    original="$(
-        echo "$search_json" |
-            jq -r --arg id "$tmdb_id" ' .results[] | select((.id | tostring) == $id) | .original_title // "" ' |
+    original="$(echo "$search_json" |
+            jq -r --arg id "$tmdb_id" 'select((.id | tostring) == $id) | .original_title // "" ' |
             head -n 1)"
-
     if [[ -n "$french" && "$french" != "$original" ]]; then
         printf '%s\n' "$french"
         return 0
     fi
-
     if [[ -n "$original" ]]; then
         printf '%s\n' "$original"
         return 0
     fi
 
-    # ID manuel ne faisant pas partie des résultats.
+    # Si impossible de trouver le titre, utilisation de failback_title
+    log_error "Impossible de récupérer les informations TMDB pour l'ID ${tmdb_id}"
     printf '%s\n' "$fallback_title"
+    return 1
 }
 
 # ==============================================================================
@@ -719,10 +734,9 @@ process_movie()
     count="$(jq '.results | length' <<< "$search_json")"
     if (( count == 0 )); then
         log_warn "Aucun résultat TMDB pour '$title'"
-        (( ERRORS+=1 ))
-        return 1
+    else
+       log_info "$count résultat(s) TMDB trouvé(s) pour '$title'"
     fi
-    log_info "$count résultat(s) TMDB trouvé(s) pour '$title'"
 
     # Construction des candidats
     CURRENT_STEP="Préparation des résultats TMDB"
@@ -739,7 +753,8 @@ process_movie()
     CURRENT_STEP="Sélection du film TMDB"
     local tmdb_id
     if tmdb_id="$(select_tmdb)"; then
-        :
+       :
+
     else
         local selection_status=$?
         if (( selection_status == 1 )); then
@@ -754,8 +769,16 @@ process_movie()
     CURRENT_TMDB_ID="$tmdb_id"
     log_info "TMDB sélectionné : $tmdb_id"
 
+    # Chargement des infos complètes du film
+    local movie_json
+    movie_json="$(get_info_tmdb "$tmdb_id")" || {
+        log_warn "Impossible de récupérer le film TMDB ${manual_id}."
+        (( ERRORS+=1 ))
+        return 1
+    }
+
     local tmdb_year
-    tmdb_year="$(jq -r --argjson id "$tmdb_id" '.results[] | select(.id == $id) | .release_date | split("-")[0] // empty' <<< "$search_json")"
+    tmdb_year="$(jq -r --argjson id "$tmdb_id" 'select(.id == $id) | .release_date | split("-")[0] // empty' <<< "$movie_json")"
 
     # Récupération du titre final
     CURRENT_STEP="Récupération du titre TMDB"
@@ -763,7 +786,7 @@ process_movie()
     tui_footer
     write_state
     local movie_title
-    if ! movie_title="$(get_final_title "$search_json" "$tmdb_id" "$title")"; then
+    if ! movie_title="$(get_final_title "$movie_json" "$tmdb_id" "$title")"; then
         log_error "Impossible de récupérer le titre TMDB $tmdb_id"
         (( ERRORS+=1 ))
         return 1
