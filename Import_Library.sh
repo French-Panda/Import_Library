@@ -14,6 +14,7 @@ CONFIG_FILE=""
 FROM=""
 DESTINATION=""
 TMDB_TOKEN=""
+LOCAL_RPW=""
 RELEASE_PARSER_URL=""
 TMDB_MAX_RESULTS=20
 LOG_FILE=""
@@ -69,6 +70,7 @@ cleanup()
     [[ -n "${STATE_FILE:-}" && -f "$STATE_FILE" ]]           && rm -f "$STATE_FILE"
     [[ -n "${CANDIDATES_FILE:-}" && -f "$CANDIDATES_FILE" ]] && rm -f "$CANDIDATES_FILE"
     [[ -n "${RESULTS_FILE:-}" && -f "$RESULTS_FILE" ]]       && rm -f "$RESULTS_FILE"
+    [[ -n "${LOCAL_RPW:-}" && ${LOCAL_RPW} -eq 1 ]]          && docker rm -f rpw-local
 }
 trap cleanup EXIT
 
@@ -90,6 +92,8 @@ Options:
 Configuration .env :
   TMDB_TOKEN="..."
   RELEASE_PARSER_URL="https://example.org/rpw"
+    ou
+  RELEASE_PARSER_URL="LOCAL"  ==> Lance le service en local via Docker
   TMDB_MAX_RESULTS="20"
 
 Exemple :
@@ -194,12 +198,6 @@ command -v fzf >/dev/null  || die "fzf est nécessaire"
 TMDB_MAX_RESULTS="${TMDB_MAX_RESULTS:-20}"
 
 # ==============================================================================
-# Création du répertoire destination
-# ==============================================================================
-mkdir -p "$DESTINATION"
-
-
-# ==============================================================================
 # Journal
 #   YYYYMMDD_Library_migration.log
 # Format :
@@ -243,6 +241,59 @@ log_critical()
 {
     log "CRITICAL" "$@"
 }
+
+# ==============================================================================
+# Commandes spécifiques à RPW en local
+# ==============================================================================
+if [[ "${RELEASE_PARSER_URL}" == "LOCAL" ]] ; then
+    command -v docker >/dev/null || die "Docker est necessaire pour lancer RPW en local"
+    # Container RPW déjà existant ?
+    if docker container inspect rpw-local >/dev/null 2>&1; then
+        # Container actuellement démarré ?
+        if [[ "$(docker inspect -f '{{.State.Running}}' rpw-local)" == "true" ]]; then
+            log_info "Le container RPW existe déjà et est démarré"
+        else # Il existe mais est arrêté : on le redémarre.
+            log_info "Le container RPW existe mais est arrêté, redémarrage"
+            docker start rpw-local >/dev/null || die "Impossible de redémarrer le container RPW"
+            sleep 2
+        fi
+    else
+        # Aucun container : création.
+        if docker image inspect rpw-local >/dev/null 2>&1 ; then
+            log_info "L'image docker de RPW existe déjà"
+        elif ! docker build -t rpw-local -f rpw/Dockerfile rpw 2>&1 ; then
+            die "Il semble y avoir un problème avec le build de l'image de RPW"
+        else
+            log_info "Image RPW créée"
+        fi
+        if ! docker run -d --name rpw-local -p 8765:8765 rpw-local 2>&1 ; then
+            die "Il semble y avoir un problème avec le lancement du container RPW"
+        fi
+        sleep 2
+    fi
+    log_info "Container RPW lancé!"
+    RELEASE_PARSER_URL="http://localhost:8765"
+    LOCAL_RPW=1
+    # On vérifie que ça tourne bien
+    for ((attempt=1; attempt<=7; attempt+=1)); do
+        if curl --fail --silent --show-error --max-time 2 "$RELEASE_PARSER_URL?Release=test" >/dev/null 2>&1; then
+            log_info "RPW est prêt"
+            break
+        fi
+        if (( attempt == 5 )); then
+            die "RPW ne répond pas après 5 tentatives"
+        fi
+        log_info "RPW n'est pas encore prêt (tentative ${attempt}/5)"
+        sleep 1
+    done
+else
+    LOCAL_RPW=0
+fi
+
+# ==============================================================================
+# Création du répertoire destination
+# ==============================================================================
+mkdir -p "$DESTINATION"
 
 # ==============================================================================
 # Gestion de l'état affiché dans le TUI

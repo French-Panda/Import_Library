@@ -3,8 +3,7 @@
 Script d'import en masse d'une bibliothèque de vidéos avec création de dossiers aux standards de Emby/Jellyfin
 
 ## Principe et fonctionalités
-Migration interactive d'une bibliothèque de films vers une nouvelle
-bibliothèque organisée au format Emby/Jellyfin, avec :
+Migration interactive d'une bibliothèque de films vers une nouvelle bibliothèque organisée au format Emby/Jellyfin, avec :
   - Analyse récursive des fichiers vidéo
   - Si plusieurs vidéos sont présentes dans un dossier : sélection de la plus grosse
   - Analyse du nom de release via scene-release-parser (https://github.com/pr0pz/scene-release-parser)
@@ -26,6 +25,7 @@ bibliothèque organisée au format Emby/Jellyfin, avec :
   - S'assurer que les dépendances sont installées
   - Copier l'exemple de fichier d'environnement et le remplir
   - Rendre le script exécutable (chmod +x Import_Library.sh)
+  - Possibilité de lancer RPW en local via Docker (auquel cas dépendance supplémentaire: Docker)
   - Et voila!
 
 ## Utilisation
