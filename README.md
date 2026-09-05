@@ -19,7 +19,7 @@ Migration interactive d'une bibliothèque de films vers une nouvelle bibliothèq
   - curl
   - jq
   - fzf
-  - Implementation de scene-release-parser (autre dépôt bientôt en ligne)
+  - Implementation de scene-release-parser (Dépôt release-parser-web en ligne!)
 
 ## Configuration
   - S'assurer que les dépendances sont installées
@@ -39,18 +39,21 @@ Exemple :
 ```
 Naviguer dans l'interface du terminal pour valider les films détectés ou entrer les ID TMDB à la main sinon.
 
-## TODO
-  - Prise en compte des séries
-  - Intégration de Release Parser Web dans le script avec option lancer ou non
-  - Choix de langue pour le titre du film
-  - Choix du format de nom de dossier avec options simples:
+![Termcast de l'exécution pour des films](Movies.gif "Import de films")
+
+## TODO / ROADMAP
+  - [v1.0] Finalisation de l'intégration de Release Parser Web dans le script avec option lancer ou non
+  - [v1.1] Choix de langue pour le titre du film
+  - [v1.1] Choix du format de nom de dossier avec options simples:
     - Langue du titre (FR, US, original)
     - Année ou non
     - ID TMDB, ID IMDB (TVDB pour les séries)
-  - Interface en Anglais en plus du Français
+  - [v1.1] Ajout lien TMDB dans le menu de choix
+  - [v2.0] Prise en compte des séries
+  - [v2.0] Interface en Anglais en plus du Français
 
 ## Informations
-Projet purement personnel, réalisé pour mon besoin propre. Partagé uniquement par amour du partage!
-Codé avec l'aide de LLM, surtout ChatGPT mais aussi Mistral et Qwen sur une instance locale d'Ollama.
-Cependant, RIEN n'est automatisé dans l'IDE, CHAQUE LIGNE est relue et CONTRÔLÉE avant d'être copiée.
-Ce code peut être librement repris, utilisé et modifié conformément aux termes de la licence GPL 3.0.
+Projet purement personnel, réalisé pour mon besoin propre. Partagé uniquement par amour du partage!  
+Codé avec l'aide de LLM, surtout ChatGPT mais aussi Mistral et Qwen sur une instance locale d'Ollama.  
+Cependant, RIEN n'est automatisé dans l'IDE, CHAQUE LIGNE est relue et CONTRÔLÉE avant d'être copiée.  
+Ce code peut être librement repris, utilisé et modifié conformément aux termes de la licence GPL 3.0.  
