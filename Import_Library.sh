@@ -5,7 +5,7 @@
 # Voir README pour explications
 # ==============================================================================
 set -Eeuo pipefail
-
+VERSION="1.0"
 # ==============================================================================
 # Variables globales
 # ==============================================================================
@@ -335,7 +335,7 @@ tui_header()
     if (( current_number > TOTAL )); then
         current_number="$TOTAL"
     fi
-    printf '%s%sLIBRARY MIGRATION%s\n' \
+    printf '%s%sLIBRARY MIGRATION%sVersion $VERSION\n' \
         "$C_BOLD" "$C_CYAN" "$C_RESET"
     printf '\n'
     printf 'Film %s/%s    |    Traités : %s    |    OK : %s    |    Erreurs : %s    |    Ignorés : %s\n' \

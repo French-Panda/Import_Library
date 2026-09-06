@@ -42,7 +42,7 @@ Naviguer dans l'interface du terminal pour valider les films détectés ou entre
 ![Termcast de l'exécution pour des films](Movies.gif "Import de films")
 
 ## TODO / ROADMAP
-  - [v1.0] Finalisation de l'intégration de Release Parser Web dans le script avec option lancer ou non
+  - [x] [v1.0] Finalisation de l'intégration de Release Parser Web dans le script avec option lancer ou non
   - [v1.1] Choix de langue pour le titre du film
   - [v1.1] Choix du format de nom de dossier avec options simples:
     - Langue du titre (FR, US, original)

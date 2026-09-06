@@ -1,8 +1,18 @@
 # Change Log
 Tous les changements notables du projet seront indiqués dans ce fichier.
 
+#€ [v1.0] - 06/09/2026
+### Ajouts
+- Image animée du traitement d'un dossier de films
+
+### Changements
+- Git pull de RPW quand nécessaire
+
+### Corrections
+- Petits corrections typo
+
 ## [v1.0-rc] - 30/08/2026
-Finalisation et test des differentes fonctionalités
+Finalisation et test des différentes fonctionalités
 
 ### Ajouts
 - Fichiers de dépôt (.gitignore, écriture README, CHANGELOG)
