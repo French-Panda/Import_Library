@@ -1,7 +1,18 @@
 # Change Log
 Tous les changements notables du projet seront indiqués dans ce fichier.
 
-#€ [v1.0] - 06/09/2026
+## [v1.1-rc] - (en développement)
+### Ajouts
+- Choix du niveau de LOG entre les 5 niveaux standards (CRITICAL, ERROR, WARN, INFO et DEBUG), INFO par défaut
+- Choix de la langue des recherches sur TMDB et pour les dossiers des films
+
+### Changements
+- Ajout du numéro de version dans l'entête des menus
+
+### Corrections
+- Petits corrections typo
+
+## [v1.0] - 06/09/2026
 ### Ajouts
 - Image animée du traitement d'un dossier de films
 

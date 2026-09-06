@@ -43,14 +43,14 @@ Naviguer dans l'interface du terminal pour valider les films détectés ou entre
 
 ## TODO / ROADMAP
   - [x] [v1.0] Finalisation de l'intégration de Release Parser Web dans le script avec option lancer ou non
-  - [v1.1] Choix de langue pour le titre du film
-  - [v1.1] Choix du format de nom de dossier avec options simples:
+  - [x] [v1.1] Choix de langue pour le titre du film
+  - [ ] [v1.1] Choix du format de nom de dossier avec options simples:
     - Langue du titre (FR, US, original)
     - Année ou non
     - ID TMDB, ID IMDB (TVDB pour les séries)
-  - [v1.1] Ajout lien TMDB dans le menu de choix
-  - [v2.0] Prise en compte des séries
-  - [v2.0] Interface en Anglais en plus du Français
+  - [ ] [v1.1] Ajout lien TMDB dans le menu de choix
+  - [ ] [v2.0] Prise en compte des séries
+  - [ ] [v2.0] Interface en Anglais en plus du Français
 
 ## Informations
 Projet purement personnel, réalisé pour mon besoin propre. Partagé uniquement par amour du partage!  

@@ -6,6 +6,7 @@
 # ==============================================================================
 set -Eeuo pipefail
 VERSION="1.0"
+
 # ==============================================================================
 # Variables globales
 # ==============================================================================
@@ -17,6 +18,7 @@ TMDB_TOKEN=""
 LOCAL_RPW=""
 RELEASE_PARSER_URL=""
 TMDB_MAX_RESULTS=20
+TMDB_LANG="fr-FR"
 LOG_FILE=""
 TOTAL=0
 PROCESSED=0
@@ -28,6 +30,7 @@ CURRENT_FILE=""
 CURRENT_RELEASE=""
 CURRENT_TITLE=""
 CURRENT_TMDB_ID=""
+LOG_LEVEL="INFO"
 
 # Fichier temporaire contenant l'état courant affiché dans le TUI.
 STATE_FILE=""
@@ -219,22 +222,22 @@ log()
 
 log_debug()
 {
-    log "DEBUG" "$@"
+    [[ $LOG_LEVEL =~ (DEBUG) ]] && log "DEBUG" "$@" || :
 }
 
 log_info()
 {
-    log "INFO" "$@"
+    [[ $LOG_LEVEL =~ (DEBUG|INFO) ]] && log "INFO" "$@" || :
 }
 
 log_warn()
 {
-    log "WARN" "$@"
+    [[ $LOG_LEVEL =~ (DEBUG|INFO|WARN) ]] && log "WARN" "$@" || :
 }
 
 log_error()
 {
-    log "ERROR" "$@"
+    [[ $LOG_LEVEL =~ (DEBUG|INFO|WARN|ERROR) ]] && log "ERROR" "$@" || :
 }
 
 log_critical()
@@ -335,8 +338,8 @@ tui_header()
     if (( current_number > TOTAL )); then
         current_number="$TOTAL"
     fi
-    printf '%s%sLIBRARY MIGRATION%sVersion $VERSION\n' \
-        "$C_BOLD" "$C_CYAN" "$C_RESET"
+    printf '%s%sLIBRARY MIGRATION%s - %s%sVersion %s%s\n' \
+        "$C_BOLD" "$C_CYAN" "$C_RESET" "$C_BOLD" "$C_GREEN" "$VERSION" "$C_RESET"
     printf '\n'
     printf 'Film %s/%s    |    Traités : %s    |    OK : %s    |    Erreurs : %s    |    Ignorés : %s\n' \
         "$current_number" \
@@ -441,7 +444,7 @@ search_tmdb()
         --url "https://api.themoviedb.org/3/search/movie"
         --data-urlencode "api_key=${TMDB_TOKEN}"
         --data-urlencode "query=$title"
-        --data-urlencode "language=fr-FR"
+        --data-urlencode "language=$TMDB_LANG"
         --data-urlencode "include_adult=false"
     )
     local result
@@ -470,7 +473,7 @@ get_info_tmdb()
         --get
         --url "https://api.themoviedb.org/3/movie/${movie_id}"
         --data-urlencode "api_key=${TMDB_TOKEN}"
-        --data-urlencode "language=fr-FR"
+        --data-urlencode "language=$TMDB_LANG"
         --data-urlencode "append_to_response=alternative_titles,external_ids"
     ) # D'autres infos peuvent etre récupérées au besoin, voir https://developer.themoviedb.org/docs/append-to-response
     local result
