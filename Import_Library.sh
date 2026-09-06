@@ -261,10 +261,15 @@ if [[ "${RELEASE_PARSER_URL}" == "LOCAL" ]] ; then
         # Aucun container : création.
         if docker image inspect rpw-local >/dev/null 2>&1 ; then
             log_info "L'image docker de RPW existe déjà"
-        elif ! docker build -t rpw-local -f rpw/Dockerfile rpw 2>&1 ; then
-            die "Il semble y avoir un problème avec le build de l'image de RPW"
         else
-            log_info "Image RPW créée"
+            [[ ! -e rpw/Dockerfile ]] && \
+                git clone https://github.com/French-Panda/release-parser-web.git rpw || \
+                die "Impossible de cloner le répertoire de RPW"
+            if ! docker build -t rpw-local -f rpw/Dockerfile rpw 2>&1 ; then
+                die "Il semble y avoir un problème avec le build de l'image de RPW"
+            else
+                log_info "Image RPW créée"
+            fi
         fi
         if ! docker run -d --name rpw-local -p 8765:8765 rpw-local 2>&1 ; then
             die "Il semble y avoir un problème avec le lancement du container RPW"
@@ -280,10 +285,11 @@ if [[ "${RELEASE_PARSER_URL}" == "LOCAL" ]] ; then
             log_info "RPW est prêt"
             break
         fi
-        if (( attempt == 5 )); then
+        if (( attempt == 7 )); then
+            log_error "RPW ne répond pas après 5 tentatives - Arrêt"
             die "RPW ne répond pas après 5 tentatives"
         fi
-        log_info "RPW n'est pas encore prêt (tentative ${attempt}/5)"
+        log_info "RPW n'est pas encore prêt (tentative ${attempt}/7)"
         sleep 1
     done
 else
