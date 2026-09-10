@@ -5,6 +5,7 @@ Tous les changements notables du projet seront indiqués dans ce fichier.
 ### Ajouts
 - Choix du niveau de LOG entre les 5 niveaux standards (CRITICAL, ERROR, WARN, INFO et DEBUG), INFO par défaut
 - Choix de la langue des recherches sur TMDB et pour les dossiers des films
+- Système de template pour le nommage des dossiers supportant les titres dans la langue souhaitée, l'année, les ID TMDB, IMDB, TVDB
 
 ### Changements
 - Ajout du numéro de version dans l'entête des menus

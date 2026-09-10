@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2015
 
 # ==============================================================================
 # Import_Library.sh
 # Voir README pour explications
 # ==============================================================================
 set -Eeuo pipefail
-VERSION="1.0"
+VERSION="1.1-rc"
 
 # ==============================================================================
 # Variables globales
@@ -19,6 +20,7 @@ LOCAL_RPW=""
 RELEASE_PARSER_URL=""
 TMDB_MAX_RESULTS=20
 TMDB_LANG="fr-FR"
+FOLDER_TEMPLATE='{{title-fr}} ({{year}}) [tmdbid-{{tmdbid}}]'
 LOG_FILE=""
 TOTAL=0
 PROCESSED=0
@@ -398,7 +400,6 @@ urlencode()
     jq -nr --arg value "$1" '$value|@uri'
 }
 
-
 # ------------------------------------------------------------------------------
 # Détermine le nom à utiliser pour analyser le film.
 # Si la vidéo se trouve dans un dossier sous FROM, le nom de ce dossier est
@@ -475,7 +476,7 @@ get_info_tmdb()
         --data-urlencode "api_key=${TMDB_TOKEN}"
         --data-urlencode "language=$TMDB_LANG"
         --data-urlencode "append_to_response=alternative_titles,external_ids"
-    ) # D'autres infos peuvent etre récupérées au besoin, voir https://developer.themoviedb.org/docs/append-to-response
+    ) # D'autres infos peuvent être récupérées au besoin, voir https://developer.themoviedb.org/docs/append-to-response
     local result
     result="$(curl "${args[@]}")" || return 1
     echo "$result"
@@ -496,6 +497,178 @@ sanitize_title()
     # Espaces multiples + espaces en début/fin.
     value="$(printf '%s' "$value" | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//')"
     printf '%s' "$value"
+}
+
+# ==============================================================================
+# Construction du nom de dossier à partir du template
+# Après génération, nettoyage du nom
+# ==============================================================================
+build_folder_name()
+{
+    local movie_json="$1"
+    local template="$FOLDER_TEMPLATE"
+    local title_original=""
+    local title=""
+    local year=""
+    local tmdbid=""
+    local imdbid=""
+    local tvdbid=""
+    local placeholder=""
+    local country=""
+    local value=""
+    local sentinel="__FOLDER_TEMPLATE_EMPTY__"
+    local previous
+
+    # Informations générales du film.
+    title_original="$(jq -r '.original_title // ""' <<< "$movie_json")"
+    year="$(jq -r '
+        if (.release_date // "") != "" then (.release_date | split("-")[0])
+        else ""
+        end ' <<< "$movie_json")"
+    tmdbid="$(jq -r '
+        if .id != null then (.id | tostring)
+        else ""
+        end ' <<< "$movie_json")"
+    imdbid="$(jq -r '.external_ids.imdb_id // ""' <<< "$movie_json")"
+    tvdbid="$(jq -r '
+        if .external_ids.tvdb_id != null then (.external_ids.tvdb_id | tostring)
+        else ""
+        end ' <<< "$movie_json")"
+
+    # Placeholder {{title-original}} est traité explicitement
+    while [[ "$template" == *'{{title-original}}'* ]]; do
+        value="$title_original"
+        if [[ -n "$value" ]]; then
+            template="${template/'{{title-original}}'/"$value"}"
+        else
+            template="${template/'{{title-original}}'/"$sentinel"}"
+        fi
+    done
+
+    # Traitement des {{title-XX}}
+    while [[ "$template" =~ \{\{title-([[:alnum:]_-]+)\}\} ]]; do
+        placeholder="${BASH_REMATCH[0]}"
+        country="${BASH_REMATCH[1]^^}"
+
+        if [[ "$country" == "ORIGINAL" ]]; then
+            value="$title_original"
+        else
+            value="$(jq -r \
+                --arg country "$country" '
+                    [
+                        .alternative_titles.titles[]?
+                        | select(
+                            (.iso_3166_1 // "" | ascii_upcase)
+                            == $country
+                          )
+                        | .title // empty
+                    ][0] // ""
+                ' <<< "$movie_json")"
+            # Fallback sur le titre original si aucun titre n'est trouvé
+            if [[ -z "$value" ]]; then
+                value="$title_original"
+            fi
+        fi
+
+        if [[ -n "$value" ]]; then
+            template="${template/"$placeholder"/"$value"}"
+        else
+            template="${template/"$placeholder"/"$sentinel"}"
+        fi
+    done
+
+    # Traitement de {{year}}
+    while [[ "$template" == *'{{year}}'* ]]; do
+        if [[ -n "$year" ]]; then
+            template="${template/'{{year}}'/"$year"}"
+        else
+            template="${template/'{{year}}'/"$sentinel"}"
+        fi
+    done
+
+    # {{tmdbid}}
+    while [[ "$template" == *'{{tmdbid}}'* ]]; do
+        if [[ -n "$tmdbid" ]]; then
+            template="${template/'{{tmdbid}}'/"$tmdbid"}"
+        else
+            template="${template/'{{tmdbid}}'/"$sentinel"}"
+        fi
+    done
+
+    # {{imdbid}}
+    while [[ "$template" == *'{{imdbid}}'* ]]; do
+        if [[ -n "$imdbid" ]]; then
+            template="${template/'{{imdbid}}'/"$imdbid"}"
+        else
+            template="${template/'{{imdbid}}'/"$sentinel"}"
+        fi
+    done
+
+    # {{tvdbid}}
+    while [[ "$template" == *'{{tvdbid}}'* ]]; do
+        if [[ -n "$tvdbid" ]]; then
+            template="${template/'{{tvdbid}}'/"$tvdbid"}"
+        else
+            template="${template/'{{tvdbid}}'/"$sentinel"}"
+        fi
+    done
+
+    # Suppression des groupes contenant un placeholder vide.
+    # Le sentinel permet notamment de supprimer :
+    #   [tvdbid-__FOLDER_TEMPLATE_EMPTY__]
+    #   et tout autre groupe avec le SENTINEL à la place de la valeur
+    #   et on recommence jusqu'à ce qu'aucun groupe ne contienne le sentinel.
+    while true; do
+        previous="$template"
+
+        template="$(printf '%s' "$template" |
+            sed -E \
+                -e 's/\([^()]*__FOLDER_TEMPLATE_EMPTY__[^()]*\)//g' \
+                -e 's/\[[^][]*__FOLDER_TEMPLATE_EMPTY__[^][]*\]//g' \
+                -e 's/\{[^{}]*__FOLDER_TEMPLATE_EMPTY__[^{}]*\}//g')"
+
+        [[ "$template" == "$previous" ]] && break
+    done
+
+    # Les sentinels restants sont des placeholders vides qui n'étaient pas entourés par (), [] ou {}.
+    template="${template//"$sentinel"/}"
+
+    # Nettoyage des groupes vides / sans caractère alphanumérique.
+    while true; do
+        previous="$template"
+        template="$(printf '%s' "$template" | sed -E \
+                -e 's/\([^[:alnum:]]*\)//g' \
+                -e 's/\[[^[:alnum:]]*\]//g' \
+                -e 's/\{[^[:alnum:]]*\}//g')"
+        [[ "$template" == "$previous" ]] && break
+    done
+
+    # Nettoyage des espaces autour des séparateurs sans modifier les espaces autour des "-" 
+    # lorsqu'ils séparent réellement deux valeurs.
+    template="$(printf '%s' "$template" | sed -E \
+            -e 's/[[:space:]]+[-_][[:space:]]*$//' \
+            -e 's/^[[:space:]]*[-_][[:space:]]+//' \
+            -e 's/[[:space:]]{2,}/ /g')"
+
+    # Espaces multiples -> espace simple.
+    template="$(printf '%s' "$template" | sed -E 's/[[:space:]]+/ /g')"
+
+    # Espaces autour des parenthèses / crochets / accolades.
+    template="$(printf '%s' "$template" | sed -E \
+            -e 's/[[:space:]]+\)/)/g' \
+            -e 's/\([[:space:]]+/\(/g' \
+            -e 's/[[:space:]]+\]/]/g' \
+            -e 's/\[[[:space:]]+/\[/g' \
+            -e 's/[[:space:]]+\}/}/g' \
+            -e 's/\{[[:space:]]+/\{/g')"
+
+    # Suppression des espaces en début / fin.
+    template="$(printf '%s' "$template" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+
+    # Sécurité finale : caractères interdits pour un nom de fichier/dossier.
+    template="$(sanitize_title "$template")"
+
+    printf '%s' "$template"
 }
 
 # ==============================================================================
@@ -577,38 +750,6 @@ select_tmdb()
 
     # Le premier champ est l'ID pour une sélection dans le menu fzf.
     awk '{print $1}' <<< "$selection"
-}
-
-# ==============================================================================
-# Détermination du titre final
-# Priorité : 1. Français / 2. Original
-# ==============================================================================
-get_final_title()
-{
-    local search_json="$1"
-    local tmdb_id="$2"
-    local fallback_title="$3"
-    local french
-    local original
-    french="$(echo "$search_json" |
-            jq -r --arg id "$tmdb_id" 'select((.id | tostring) == $id) | .title // "" ' |
-            head -n 1)"
-    original="$(echo "$search_json" |
-            jq -r --arg id "$tmdb_id" 'select((.id | tostring) == $id) | .original_title // "" ' |
-            head -n 1)"
-    if [[ -n "$french" && "$french" != "$original" ]]; then
-        printf '%s\n' "$french"
-        return 0
-    fi
-    if [[ -n "$original" ]]; then
-        printf '%s\n' "$original"
-        return 0
-    fi
-
-    # Si impossible de trouver le titre, utilisation de failback_title
-    log_error "Impossible de récupérer les informations TMDB pour l'ID ${tmdb_id}"
-    printf '%s\n' "$fallback_title"
-    return 1
 }
 
 # ==============================================================================
@@ -837,35 +978,23 @@ process_movie()
         return 1
     }
 
-    local tmdb_year
-    tmdb_year="$(jq -r --argjson id "$tmdb_id" 'select(.id == $id) | .release_date | split("-")[0] // empty' <<< "$movie_json")"
-
     # Récupération du titre final
     CURRENT_STEP="Récupération du titre TMDB"
     tui_header
     tui_footer
     write_state
-    local movie_title
-    if ! movie_title="$(get_final_title "$movie_json" "$tmdb_id" "$title")"; then
-        log_error "Impossible de récupérer le titre TMDB $tmdb_id"
-        (( ERRORS+=1 ))
-        return 1
-    fi
-    movie_title="$(sanitize_title "$movie_title")"
-    log_info "Titre final : '$movie_title'"
-
     # Destination
     CURRENT_STEP="Préparation du dossier destination"
     tui_header
     tui_footer
     write_state
+
+    local folder_name
+    folder_name="$(build_folder_name "$movie_json")"
+
     local movie_directory
-    if [[ -n "$tmdb_year" ]]; then
-        movie_directory="${DESTINATION}/${movie_title} (${tmdb_year}) [tmdbid-${tmdb_id}]"
-    else
-        # Fallback si TMDB ne fournit pas de date de sortie.
-        movie_directory="${DESTINATION}/${movie_title} [tmdbid-${tmdb_id}]"
-    fi
+    movie_directory="${DESTINATION}/${folder_name}"
+
     mkdir -p "$movie_directory"
     local filename
     local target

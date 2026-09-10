@@ -25,8 +25,26 @@ Migration interactive d'une bibliothèque de films vers une nouvelle bibliothèq
   - S'assurer que les dépendances sont installées
   - Copier l'exemple de fichier d'environnement et le remplir
   - Rendre le script exécutable (chmod +x Import_Library.sh)
-  - Possibilité de lancer RPW en local via Docker (auquel cas dépendance supplémentaire: Docker)
+  - Possibilité de lancer RPW en local via Docker (auquel cas dépendances supplémentaires: Git et Docker)
+  - Possibilité de modifier le template par défaut de nommage des dossiers (voir ci-dessous)
   - Et voila!
+
+### Template pour le nom de dossier
+  - Variables disponibles :
+    - `{{title-original}}` : Titre original
+    - `{{title-XX}}` : Titre selon le code pays ISO 3166-1
+      - Exemple : `{{title-FR}}`, `{{title-US}}`, `{{title-JP}}`
+      - fallback vers .original_title
+    - `{{year}}`   : Année
+    - `{{tmdbid}}` : ID TMDB
+    - `{{imdbid}}` : ID IMDb
+    - `{{tvdbid}}` : ID TVDB (en préparation de la V2 traitant les séries)
+  - Après génération, nettoyage :
+    - suppression des groupes vides entre (), [], {}, etc.
+    - suppression des groupes ne contenant aucun caractère alphanumérique
+    - espaces multiples -> espace simple
+    - espaces autour des séparateurs -> nettoyage
+    - espaces finaux -> supprimés
 
 ## Utilisation
 Les chemins source et destination sont TOUJOURS passés en arguments.
@@ -44,10 +62,11 @@ Naviguer dans l'interface du terminal pour valider les films détectés ou entre
 ## TODO / ROADMAP
   - [x] [v1.0] Finalisation de l'intégration de Release Parser Web dans le script avec option lancer ou non
   - [x] [v1.1] Choix de langue pour le titre du film
-  - [ ] [v1.1] Choix du format de nom de dossier avec options simples:
+  - [x] [v1.1] Choix du format de nom de dossier avec options simples:
     - Langue du titre (FR, US, original)
     - Année ou non
     - ID TMDB, ID IMDB (TVDB pour les séries)
+    - --> Utilisation d'un système de template complet!
   - [ ] [v2.0] Prise en compte des séries
   - [ ] [v2.0] Interface en Anglais en plus du Français
   - ~~[ ] [v1.1] Ajout lien TMDB dans le menu de choix~~ -> Incompatible avec fzf qui prend le clic pour une interaction
