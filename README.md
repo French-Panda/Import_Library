@@ -48,9 +48,9 @@ Naviguer dans l'interface du terminal pour valider les films détectés ou entre
     - Langue du titre (FR, US, original)
     - Année ou non
     - ID TMDB, ID IMDB (TVDB pour les séries)
-  - [ ] [v1.1] Ajout lien TMDB dans le menu de choix
   - [ ] [v2.0] Prise en compte des séries
   - [ ] [v2.0] Interface en Anglais en plus du Français
+  - ~~[ ] [v1.1] Ajout lien TMDB dans le menu de choix~~ -> Incompatible avec fzf qui prend le clic pour une interaction
 
 ## Informations
 Projet purement personnel, réalisé pour mon besoin propre. Partagé uniquement par amour du partage!  
