@@ -1,0 +1,159 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+# Autorise le token Gitea intégré à créer la release et son asset.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Une release n'est créée QUE pour une version définitive.
+    if: >
+      !endsWith(gitea.ref_name, '-alpha') &&
+      !endsWith(gitea.ref_name, '-beta') &&
+      !endsWith(gitea.ref_name, '-rc')
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # Récupération complète du dépôt.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Préparation de la release
+      - name: Prepare release
+        run: |
+          chmod +x scripts/create-release.sh
+          ./scripts/create-release.sh "${{ gitea.ref_name }}"
+
+      # Création de la release Gitea
+      - name: Create Gitea release
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          TAG: ${{ gitea.ref_name }}
+          REPOSITORY: ${{ gitea.repository }}
+          SERVER_URL: ${{ gitea.server_url }}
+        run: |
+          echo "Création de la release Gitea ${TAG}..."
+
+          RELEASE_RESPONSE=$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --request POST \
+              --url "${SERVER_URL}/api/v1/repos/${REPOSITORY}/releases" \
+              --header "Authorization: token ${GITEA_TOKEN}" \
+              --header "Content-Type: application/json" \
+              --data "$(jq -n \
+                --arg tag "$TAG" \
+                --arg body "$(cat release-notes.md)" \
+                '{
+                  tag_name: $tag,
+                  name: $tag,
+                  body: $body,
+                  draft: false,
+                  prerelease: false
+                }'
+              )"
+          )
+
+          RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
+
+          if [[ -z "$RELEASE_ID" || "$RELEASE_ID" == "null" ]]; then
+            echo "Impossible de récupérer l'ID de la release Gitea."
+            echo "$RELEASE_RESPONSE"
+            exit 1
+          fi
+
+          echo "Release Gitea créée : ${RELEASE_ID}"
+
+          # Upload du ZIP comme asset de la release.
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --request POST \
+            --url "${SERVER_URL}/api/v1/repos/${REPOSITORY}/releases/${RELEASE_ID}/assets?name=Import_Library_${TAG}.zip" \
+            --header "Authorization: token ${GITEA_TOKEN}" \
+            --form "attachment=@Import_Library_${TAG}.zip"
+
+          echo "Archive ajoutée à la release Gitea."
+
+      # Création de la release GitHub
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+          TAG: ${{ gitea.ref_name }}
+        run: |
+          echo "Création de la release GitHub ${TAG}..."
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --request POST \
+            --url "https://api.github.com/repos/French-Panda/Import_Library/releases" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --header "Content-Type: application/json" \
+            --data "$(jq -n \
+              --arg tag "$TAG" \
+              --arg body "$(cat release-notes.md)" \
+              '{
+                tag_name: $tag,
+                name: $tag,
+                body: $body,
+                draft: false,
+                prerelease: false
+              }'
+            )"
+
+          echo "Release GitHub créée."
+
+      # Upload de l'archive à la release GitHub
+      - name: Upload GitHub release asset
+        env:
+          GH_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
+          TAG: ${{ gitea.ref_name }}
+        run: |
+          echo "Upload de l'archive vers GitHub..."
+
+          # Récupération de l'ID de la release.
+          RELEASE_ID=$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --request GET \
+              --url "https://api.github.com/repos/French-Panda/Import_Library/releases/tags/${TAG}" \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" |
+            jq -r '.id'
+          )
+
+          if [[ -z "$RELEASE_ID" || "$RELEASE_ID" == "null" ]]; then
+            echo "Impossible de récupérer l'ID de la release GitHub."
+            exit 1
+          fi
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --request POST \
+            --url "https://uploads.github.com/repos/French-Panda/Import_Library/releases/${RELEASE_ID}/assets?name=Import_Library_${TAG}.zip" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "Content-Type: application/zip" \
+            --data-binary "@Import_Library_${TAG}.zip"
+
+          echo "Archive ajoutée à la release GitHub."

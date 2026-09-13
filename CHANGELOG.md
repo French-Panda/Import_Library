@@ -1,7 +1,15 @@
 # Change Log
 Tous les changements notables du projet seront indiqués dans ce fichier.
 
-## [v1.1-rc] - (en développement)
+## [v1.1] - 13/09/2026
+### Ajouts
+- Création de releases via actions Gitea et publication sur Gitea et Github
+
+### Changements
+
+### Corrections
+
+## [v1.1-rc] - 11/09/2026
 ### Ajouts
 - Choix du niveau de LOG entre les 5 niveaux standards (CRITICAL, ERROR, WARN, INFO et DEBUG), INFO par défaut
 - Choix de la langue des recherches sur TMDB et pour les dossiers des films
