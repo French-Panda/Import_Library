@@ -19,7 +19,6 @@ if [[ -z "$TAG" ]]; then
     echo "Usage : $0 <tag>" >&2
     exit 1
 fi
-
 # Le workflow possède déjà cette condition, mais le script la vérifie également
 # afin qu'une exécution manuelle ne puisse pas publier une version alpha/beta/rc.
 if [[ "$TAG" =~ -(alpha|beta|rc)$ ]]; then
@@ -66,7 +65,7 @@ else
     echo "Aucune version définitive précédente."
 fi
 
-# Vérification de l'existence de la section actuelle dans le CHANGELOG
+# Vérification existence de la section actuelle dans le CHANGELOG
 if ! grep -q "^## \[${TAG}\]" CHANGELOG.md; then
     echo "Erreur : aucune section '## [${TAG}]' trouvée dans CHANGELOG.md." >&2
     exit 1
@@ -107,7 +106,7 @@ else
             in_release = 1
             next
         }
-        # Pour la toute première release, il n'y a pas de limite inférieure.
+        # Pour la toute première release, pas de limite inférieure.
         in_release {
             print
         }
