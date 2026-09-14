@@ -19,7 +19,7 @@ Migration interactive d'une bibliothèque de films vers une nouvelle bibliothèq
   - curl
   - jq
   - fzf
-  - Implementation de scene-release-parser (Dépôt release-parser-web en ligne!)
+  - Implémentation de scene-release-parser (Dépôt release-parser-web en ligne!)
 
 ## Configuration
   - S'assurer que les dépendances sont installées
@@ -47,6 +47,7 @@ Migration interactive d'une bibliothèque de films vers une nouvelle bibliothèq
     - espaces finaux -> supprimés
 
 ## Utilisation
+Recupérer la dernière version sur la page [releases](releases)
 Les chemins source et destination sont TOUJOURS passés en arguments.
 
 Exemple :
@@ -67,6 +68,7 @@ Naviguer dans l'interface du terminal pour valider les films détectés ou entre
     - Année ou non
     - ID TMDB, ID IMDB (TVDB pour les séries)
     - --> Utilisation d'un système de template complet!
+  - [x] [v1.1] Création de release zippée automatiquement (actions Gitea)
   - [ ] [v2.0] Prise en compte des séries
   - [ ] [v2.0] Interface en Anglais en plus du Français
   - ~~[ ] [v1.1] Ajout lien TMDB dans le menu de choix~~ -> Incompatible avec fzf qui prend le clic pour une interaction
